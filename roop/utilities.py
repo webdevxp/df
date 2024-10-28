@@ -6,6 +6,7 @@ import shutil
 import ssl
 import subprocess
 import urllib
+import hashlib
 from pathlib import Path
 from typing import List, Optional
 from tqdm import tqdm
@@ -43,9 +44,44 @@ def detect_fps(target_path: str) -> float:
 
 
 def extract_frames(target_path: str, fps: float = 30) -> bool:
+    target_directory_path = os.path.dirname(target_path)
+    hash = hashlib.sha1()
+    CHUNK_SIZE = 65536
+    with open(target_path, 'rb') as f:
+        while True:
+            chunk = f.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            hash.update(chunk)
+    frames_directory_path = os.path.join(target_directory_path, 'cache', hash.hexdigest())
+    if os.path.isdir(frames_directory_path):
+        print(f'[ROOP.CORE] Copying previously extracted frames...')
+    else:
+        Path(frames_directory_path).mkdir(parents=True, exist_ok=True)
+        temp_frame_quality = roop.globals.temp_frame_quality * 31 // 100
+        print(f'[ROOP.CORE] Extracting frames with {fps} FPS...')
+        result = run_ffmpeg(
+            [
+                '-hwaccel',
+                'auto',
+                '-i',
+                target_path,
+                '-q:v',
+                str(temp_frame_quality),
+                '-pix_fmt',
+                'rgb24',
+                '-vf',
+                'fps=' + str(fps),
+                os.path.join(frames_directory_path, '%04d.' + roop.globals.temp_frame_format)
+            ]
+        )
+        if not result:
+            return False
+    files = os.listdir(frames_directory_path)
     temp_directory_path = get_temp_directory_path(target_path)
-    temp_frame_quality = roop.globals.temp_frame_quality * 31 // 100
-    return run_ffmpeg(['-hwaccel', 'auto', '-i', target_path, '-q:v', str(temp_frame_quality), '-pix_fmt', 'rgb24', '-vf', 'fps=' + str(fps), os.path.join(temp_directory_path, '%04d.' + roop.globals.temp_frame_format)])
+    for f in files:
+        shutil.copy2(os.path.join(frames_directory_path, f), temp_directory_path)
+    return True
 
 
 def create_video(target_path: str, fps: float = 30) -> bool:
