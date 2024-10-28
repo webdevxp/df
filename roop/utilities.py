@@ -8,7 +8,7 @@ import subprocess
 import urllib
 import hashlib
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Callable
 from tqdm import tqdm
 
 import roop.globals
@@ -43,7 +43,7 @@ def detect_fps(target_path: str) -> float:
     return 30
 
 
-def extract_frames(target_path: str, fps: float = 30) -> bool:
+def extract_frames(target_path: str, update_status: Callable[[str, str], None], fps: float = 30) -> bool:
     target_directory_path = os.path.dirname(target_path)
     hash = hashlib.sha1()
     CHUNK_SIZE = 65536
@@ -55,11 +55,11 @@ def extract_frames(target_path: str, fps: float = 30) -> bool:
             hash.update(chunk)
     frames_directory_path = os.path.join(target_directory_path, 'cache', hash.hexdigest())
     if os.path.isdir(frames_directory_path):
-        print(f'[ROOP.CORE] Copying previously extracted frames...')
+        update_status('Copying previously extracted frames...')
     else:
         Path(frames_directory_path).mkdir(parents=True, exist_ok=True)
         temp_frame_quality = roop.globals.temp_frame_quality * 31 // 100
-        print(f'[ROOP.CORE] Extracting frames with {fps} FPS...')
+        update_status(f'Extracting frames with {fps} FPS...')
         result = run_ffmpeg(
             [
                 '-hwaccel',
@@ -77,10 +77,8 @@ def extract_frames(target_path: str, fps: float = 30) -> bool:
         )
         if not result:
             return False
-    files = os.listdir(frames_directory_path)
     temp_directory_path = get_temp_directory_path(target_path)
-    for f in files:
-        shutil.copy2(os.path.join(frames_directory_path, f), temp_directory_path)
+    shutil.copytree(frames_directory_path, temp_directory_path, dirs_exist_ok=True)
     return True
 
 
