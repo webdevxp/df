@@ -156,9 +156,9 @@ def start() -> None:
     # extract frames
     if roop.globals.keep_fps:
         fps = detect_fps(roop.globals.target_path)
-        extract_frames(roop.globals.target_path, fps)
+        extract_frames(roop.globals.target_path, update_status, fps)
     else:
-        extract_frames(roop.globals.target_path)
+        extract_frames(roop.globals.target_path, update_status)
     # process frame
     temp_frame_paths = get_temp_frame_paths(roop.globals.target_path)
     if temp_frame_paths:
