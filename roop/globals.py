@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+temp_path: Optional[str] = None
 source_path: Optional[str] = None
 target_path: Optional[str] = None
 output_path: Optional[str] = None
