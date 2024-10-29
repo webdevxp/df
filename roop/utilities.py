@@ -44,6 +44,7 @@ def detect_fps(target_path: str) -> float:
 
 
 def extract_frames(target_path: str, update_status: Callable[[str, str], None], fps: float = 30) -> bool:
+    target_name, _ = os.path.splitext(os.path.basename(target_path))
     target_directory_path = os.path.dirname(target_path)
     hash = hashlib.sha1()
     CHUNK_SIZE = 65536
@@ -53,7 +54,8 @@ def extract_frames(target_path: str, update_status: Callable[[str, str], None], 
             if not chunk:
                 break
             hash.update(chunk)
-    frames_directory_path = os.path.join(target_directory_path, 'cache', hash.hexdigest())
+    hash = hash.hexdigest()
+    frames_directory_path = os.path.join(target_directory_path, 'cache', f'{target_name}.{hash}')
     if os.path.isdir(frames_directory_path):
         update_status('Copying previously extracted frames...')
     else:
