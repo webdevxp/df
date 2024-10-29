@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 import roop.globals
 
+CACHE_DIRECTORY = 'cache'
 TEMP_DIRECTORY = 'temp'
 TEMP_VIDEO_FILE = 'temp.mp4'
 
@@ -55,7 +56,7 @@ def extract_frames(target_path: str, update_status: Callable[[str, str], None], 
                 break
             hash.update(chunk)
     hash = hash.hexdigest()
-    frames_directory_path = os.path.join(target_directory_path, 'cache', f'{target_name}.{hash}')
+    frames_directory_path = os.path.join(target_directory_path, CACHE_DIRECTORY, f'{target_name}.{hash}')
     if os.path.isdir(frames_directory_path):
         update_status('Copying previously extracted frames...')
     else:
