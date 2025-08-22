@@ -3,18 +3,18 @@
 #torch==2.0.1
 numpy==1.26.4
 opencv-python==4.8.0.74
-#onnx==1.14.0
-onnx
+onnx>=1.14.0
+#onnx
 insightface==0.7.3
 psutil==5.9.5
-#onnxruntime==1.15.1; python_version != '3.9' and sys_platform == 'darwin' and platform_machine != 'arm64'
-onnxruntime-coreml==1.13.1; python_version == '3.9' and sys_platform == 'darwin' and platform_machine != 'arm64'
-onnxruntime-silicon==1.13.1; sys_platform == 'darwin' and platform_machine == 'arm64'
-#onnxruntime-gpu==1.15.1; sys_platform != 'darwin'
-onnxruntime
+onnxruntime>=1.15.1; python_version != '3.9' and sys_platform == 'darwin' and platform_machine != 'arm64'
+onnxruntime-coreml>=1.13.1; python_version == '3.9' and sys_platform == 'darwin' and platform_machine != 'arm64'
+onnxruntime-silicon>=1.13.1; sys_platform == 'darwin' and platform_machine == 'arm64'
+onnxruntime-gpu>=1.15.1; sys_platform != 'darwin'
+#onnxruntime
 #onnxruntime-coreml
 #onnxruntime-silicon
-onnxruntime-gpu
+#onnxruntime-gpu
 #tensorflow==2.14.0
 protobuf==4.23.4
 tqdm==4.65.0
