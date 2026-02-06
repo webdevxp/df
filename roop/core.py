@@ -9,6 +9,7 @@ if any(arg.startswith('--execution-provider') for arg in sys.argv):
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import warnings
 from typing import List
+from datetime import datetime
 import platform
 import signal
 import shutil
@@ -122,9 +123,10 @@ def pre_check() -> bool:
         return False
     return True
 
-
 def update_status(message: str, scope: str = 'ROOP.CORE') -> None:
-    print(f'[{scope}] {message}')
+    now = datetime.now()
+    formatted_time = now.strftime("%H:%M:%S")
+    print(f'[{formatted_time}] {message}')
 
 
 def start() -> None:
