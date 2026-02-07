@@ -166,7 +166,6 @@ def start() -> None:
         update_status('Frames not found...')
         return
     # create video
-    fps = detect_fps(roop.globals.target_path)
     update_status(f'Creating video...')
     create_video(roop.globals.target_path, fps)
     # handle audio
