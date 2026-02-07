@@ -62,7 +62,7 @@ def extract_frames(target_path: str, update_status: Callable[[str, str], None], 
     else:
         Path(frames_directory_path).mkdir(parents=True, exist_ok=True)
         temp_frame_quality = roop.globals.temp_frame_quality * 31 // 100
-        update_status(f'Extracting frames with {fps} FPS...')
+        update_status('Extracting frames...')
         result = run_ffmpeg(
             [
                 '-hwaccel',

@@ -15,6 +15,7 @@ from datetime import datetime
 import platform
 import signal
 import shutil
+import subprocess
 import argparse
 import onnxruntime
 import tensorflow
@@ -42,11 +43,11 @@ def parse_args() -> None:
     program.add_argument('--many-faces', help='process every face', dest='many_faces', action='store_true')
     program.add_argument('--reference-face-position', help='position of the reference face', dest='reference_face_position', type=int, default=0)
     program.add_argument('--reference-frame-number', help='number of the reference frame', dest='reference_frame_number', type=int, default=0)
-    program.add_argument('--similar-face-distance', help='face distance used for recognition', dest='similar_face_distance', type=float, default=0.85)
+    program.add_argument('--similar-face-distance', help='face distance used for recognition', dest='similar_face_distance', type=float, default=255)
     program.add_argument('--temp-frame-format', help='image format used for frame extraction', dest='temp_frame_format', default='png', choices=['jpg', 'png'])
     program.add_argument('--temp-frame-quality', help='image quality used for frame extraction', dest='temp_frame_quality', type=int, default=0, choices=range(101), metavar='[0-100]')
     program.add_argument('--output-video-encoder', help='encoder used for the output video', dest='output_video_encoder', default='libx264', choices=['libx264', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'hevc_nvenc'])
-    program.add_argument('--output-video-quality', help='quality used for the output video', dest='output_video_quality', type=int, default=35, choices=range(101), metavar='[0-100]')
+    program.add_argument('--output-video-quality', help='quality used for the output video', dest='output_video_quality', type=int, default=25, choices=range(101), metavar='[0-100]')
     program.add_argument('--max-memory', help='maximum amount of RAM in GB', dest='max_memory', type=int)
     program.add_argument('--execution-provider', help='available execution provider (choices: cpu, ...)', dest='execution_provider', default=['cpu'], choices=suggest_execution_providers(), nargs='+')
     program.add_argument('--execution-threads', help='number of execution threads', dest='execution_threads', type=int, default=suggest_execution_threads())
@@ -138,8 +139,6 @@ def start() -> None:
             return
     # process image to image
     if has_image_extension(roop.globals.target_path):
-        if predict_image(roop.globals.target_path):
-            destroy()
         shutil.copy2(roop.globals.target_path, roop.globals.output_path)
         # process frame
         for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
@@ -152,9 +151,6 @@ def start() -> None:
         else:
             update_status('Processing to image failed!')
         return
-    # process image to videos
-    if predict_video(roop.globals.target_path):
-        destroy()
     update_status('Creating temporary resources...')
     create_temp(roop.globals.target_path)
     # extract frames
@@ -167,30 +163,25 @@ def start() -> None:
     temp_frame_paths = get_temp_frame_paths(roop.globals.target_path)
     if temp_frame_paths:
         for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
-            update_status('Progressing...', frame_processor.NAME)
             frame_processor.process_video(roop.globals.source_path, temp_frame_paths)
             frame_processor.post_process()
     else:
         update_status('Frames not found...')
         return
     # create video
-    if roop.globals.keep_fps:
-        fps = detect_fps(roop.globals.target_path)
-        update_status(f'Creating video with {fps} FPS...')
-        create_video(roop.globals.target_path, fps)
-    else:
-        update_status('Creating video with 30 FPS...')
-        create_video(roop.globals.target_path)
+    fps = detect_fps(roop.globals.target_path)
+    update_status(f'Creating video...')
+    create_video(roop.globals.target_path, fps)
     # handle audio
-    if roop.globals.skip_audio:
-        move_temp(roop.globals.target_path, roop.globals.output_path)
-        update_status('Skipping audio...')
-    else:
-        if roop.globals.keep_fps:
-            update_status('Restoring audio...')
-        else:
-            update_status('Restoring audio might cause issues as fps are not kept...')
+    command = ['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_type', '-of', 'default=noprint_wrappers=1:nokey=1', roop.globals.target_path]
+    output = subprocess.check_output(command).decode().strip()
+    if output == 'audio':
+        update_status('Restoring audio...')
         restore_audio(roop.globals.target_path, roop.globals.output_path)
+    else:
+        update_status('Skipping audio...')
+        move_temp(roop.globals.target_path, roop.globals.output_path)
+        
     # clean temp
     update_status('Cleaning temporary resources...')
     clean_temp(roop.globals.target_path)
