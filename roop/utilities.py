@@ -18,7 +18,7 @@ TEMP_DIRECTORY = 'temp'
 TEMP_VIDEO_FILE = 'temp.mp4'
 
 # monkey patch ssl for mac
-if platform.system().lower() == 'darwin':
+if platform.system().lower() == 'darwin': 
     ssl._create_default_https_context = ssl._create_unverified_context
 
 
