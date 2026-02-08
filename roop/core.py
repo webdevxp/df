@@ -21,7 +21,6 @@ import onnxruntime
 import tensorflow
 import roop.globals
 import roop.metadata
-from roop.predictor import predict_image, predict_video
 from roop.processors.frame.core import get_frame_processors_modules
 from roop.utilities import has_image_extension, is_image, is_video, detect_fps, create_video, extract_frames, get_temp_frame_paths, restore_audio, create_temp, move_temp, clean_temp, normalize_output_path
 
@@ -37,9 +36,6 @@ def parse_args() -> None:
     program.add_argument('-t', '--target', help='select an target image or video', dest='target_path')
     program.add_argument('-o', '--output', help='select output file or directory', dest='output_path')
     program.add_argument('--frame-processor', help='frame processors (choices: face_swapper, face_enhancer, ...)', dest='frame_processor', default=['face_swapper'], nargs='+')
-    program.add_argument('--keep-fps', help='keep target fps', dest='keep_fps', action='store_true')
-    program.add_argument('--keep-frames', help='keep temporary frames', dest='keep_frames', action='store_true')
-    program.add_argument('--skip-audio', help='skip target audio', dest='skip_audio', action='store_true')
     program.add_argument('--many-faces', help='process every face', dest='many_faces', action='store_true')
     program.add_argument('--reference-face-position', help='position of the reference face', dest='reference_face_position', type=int, default=0)
     program.add_argument('--reference-frame-number', help='number of the reference frame', dest='reference_frame_number', type=int, default=0)
@@ -61,9 +57,6 @@ def parse_args() -> None:
     roop.globals.output_path = normalize_output_path(roop.globals.source_path, roop.globals.target_path, args.output_path)
     roop.globals.headless = True
     roop.globals.frame_processors = args.frame_processor
-    roop.globals.keep_fps = args.keep_fps
-    roop.globals.keep_frames = args.keep_frames
-    roop.globals.skip_audio = args.skip_audio
     roop.globals.many_faces = args.many_faces
     roop.globals.reference_face_position = args.reference_face_position
     roop.globals.reference_frame_number = args.reference_frame_number
@@ -126,10 +119,36 @@ def pre_check() -> bool:
         return False
     return True
 
+
 def update_status(message: str, scope: str = 'ROOP.CORE') -> None:
     now = datetime.now()
     formatted_time = now.strftime("%H:%M:%S")
     print(f'[{formatted_time}] {message}')
+
+
+def get_frame_count(target_path: str) -> int:
+    command = [
+        'ffprobe',
+        '-v', 'error',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        '-count_frames',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=nb_read_frames',
+        target_path,
+    ]
+    return int(subprocess.check_output(command).decode().strip())
+
+
+def has_audio(target_path: str) -> bool:
+    command = [
+        'ffprobe',
+        '-v', 'error',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        '-select_streams', 'a',
+        '-show_entries', 'stream=codec_type',
+        target_path,
+    ]
+    return subprocess.check_output(command).decode().strip() == 'audio'
 
 
 def start() -> None:
@@ -169,9 +188,7 @@ def start() -> None:
     update_status(f'Creating video...')
     create_video(roop.globals.target_path, fps)
     # handle audio
-    command = ['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_type', '-of', 'default=noprint_wrappers=1:nokey=1', roop.globals.target_path]
-    output = subprocess.check_output(command).decode().strip()
-    if output == 'audio':
+    if has_audio(roop.globals.target_path):
         update_status('Restoring audio...')
         restore_audio(roop.globals.target_path, roop.globals.output_path)
     else:

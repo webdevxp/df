@@ -57,9 +57,7 @@ def extract_frames(target_path: str, update_status: Callable[[str, str], None], 
             hash.update(chunk)
     hash = hash.hexdigest()
     frames_directory_path = os.path.join(target_directory_path, CACHE_DIRECTORY, f'{target_name}.{hash}')
-    if os.path.isdir(frames_directory_path):
-        update_status('Copying previously extracted frames...')
-    else:
+    if not os.path.isdir(frames_directory_path):
         Path(frames_directory_path).mkdir(parents=True, exist_ok=True)
         temp_frame_quality = roop.globals.temp_frame_quality * 31 // 100
         update_status('Extracting frames...')
@@ -81,6 +79,7 @@ def extract_frames(target_path: str, update_status: Callable[[str, str], None], 
         if not result:
             return False
     temp_directory_path = get_temp_directory_path(target_path)
+    update_status('Copying frames...')
     shutil.copytree(frames_directory_path, temp_directory_path, dirs_exist_ok=True)
     return True
 
