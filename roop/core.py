@@ -12,6 +12,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import warnings
 from typing import List
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import platform
 import signal
 import shutil
@@ -121,7 +122,7 @@ def pre_check() -> bool:
 
 
 def update_status(message: str, scope: str = 'ROOP.CORE') -> None:
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("Asia/Bangkok"))
     formatted_time = now.strftime("%H:%M:%S")
     print(f'[{formatted_time}] {message}')
 
